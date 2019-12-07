@@ -51,8 +51,7 @@ const runProgram = (input) => {
     } else if (code === 2) {
       program[program[pointer + 3]] = x * y;
     } else if (code === 3) {
-      // Part 1 - input is 1;
-      // Part 2 - input is 5;
+      // INPUT CODE
       program[program[pointer + 1]] = 5;
     } else if (code === 4) {
       console.log('CODE:', program[program[pointer + 1]]);
