@@ -28,7 +28,7 @@ const getNextPointer = (code, p) => {
   }
 };
 
-// Day 20;
+// Day 21;
 const NEWLINE = 10;
 
 const getKey = (row, col) => `${row},${col}`;
@@ -42,7 +42,7 @@ const asciiSystem = (input, p2) => {
   let pointer = 0;
   let relativeBase = 0;
 
-  // day 17 vars
+  // day 21 vars
   let springboard = [];
   springboard = [
     'N', 'O', 'T', ' ', 'D', ' ', 'J', NEWLINE,
@@ -64,9 +64,7 @@ const asciiSystem = (input, p2) => {
     ].map(toASCII);
   }
   let springboardIdx = 0;
-
   const outputStack = [];
-  let robotInput = 0;
 
   while (program[pointer] !== END_STATE) {
     let opcode = program[pointer];
