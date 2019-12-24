@@ -1,139 +1,71 @@
-const KEYS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
-const DOORS = KEYS.map(k => k.toUpperCase());
-const map = [];
-const keys = {};
-const doors = {};
-const distances = {};
-const pos = [-1, -1];
+const DR = [1, 0, -1, 0];
+const DC = [0, 1, 0, -1];
+const GRID = [];
 
 const lineReader = require('readline').createInterface({
-  input: require('fs').createReadStream('18/test.txt')
+  input: require('fs').createReadStream('18/input.txt')
 });
-const parseLine = line => {
-  let row = [];
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i];
-
-    if (c === '@') {
-      pos[0] = map.length;
-      pos[1] = i;
-    } else if (KEYS.includes(c)) {
-      keys[c] = [map.length, i];
-    } else if (DOORS.includes(c)) {
-      doors[c] = [map.length, i];
-    }
-
-    row.push(c);
-  }
-  map.push(row);
-};
-
+const parseLine = line => GRID.push(line.split(''));
 lineReader.on('line', line => parseLine(line));
 lineReader.on('close', () => {
-  calculateDistances();
-  console.log('Part one:', shortestPathToGetKeys(pos, map));
+  console.log('Part one:', partOne(GRID));
 });
 
-const key = (pos) => `${pos[0]},${pos[1]}`;
+const getKey = (row, col, keys) => {
+  const sortedKeys = [...keys].sort().join('');
+  return `${row},${col},${sortedKeys}`;
+}
 
-const getNextMovesFrom = (move, map) =>
-  [
-    [move[0] - 1, move[1]],
-    [move[0] + 1, move[1]],
-    [move[0], move[1] + 1],
-    [move[0], move[1] - 1],
-  ].filter(newMove => newMove[0] >= 0 && newMove[1] >= 0 &&
-    newMove[0] < map[0].length && newMove[1] < map[0].length && 
-    map[newMove[0]][newMove[1]] !== '#'
-  );
+const partOne = (GRID) => {
+  const allKeys = new Set();
+  let queue = [];
 
-const calculateDistances = () => {
-  distances[key(pos)] = bfs(pos, map);
-
-  const ks = Object.keys(keys);
-  for (let i = 0; i < ks.length; i++) {
-    const k = ks[i];
-    distances[key(keys[k])] = bfs(keys[k], map);
-  }
-};
-
-const bfs = (point, map) => {
-  // 'state' will have [row, col, steps, ]
-  const visited = new Set();
-  const queue = [[point[0], point[1], 0, []]];
-  visited.add(key(point));
-
-  // hash of { [key: string]: steps }
-  const foundKeys = {};
-
-  while (queue.length) {
-    let [row, col, steps, doors] = queue.pop();
-    
-    visited.add(key([row, col]));
-
-    const foundDoor = DOORS.find(door => door === map[row][col]);
-    if (foundDoor) {
-      doors = doors.concat(foundDoor);
-    }
-
-    // found a key
-    const foundKey = KEYS.find(key => key === map[row][col]);
-    if (foundKey && foundKey !== map[point[0]][point[1]]) {
-      foundKeys[foundKey] = [row, col, steps, doors];
-    }
-
-    const nextMoves = getNextMovesFrom([row, col], map);
-
-    for (let i = 0; i < nextMoves.length; i++) {
-      const [dRow, dCol] = nextMoves[i];
-      if (!visited.has(key([dRow, dCol]))) {
-        visited.add(key([dRow, dCol]));
-        queue.push([dRow, dCol, steps + 1, doors]);
+  for (let r = 0; r < GRID.length; r++) {
+    for (let c = 0; c < GRID[0].length; c++) {
+      if (GRID[r][c] === '@') {
+        queue.push([r, c, new Set(), 0]);
+      } else if ('a' <= GRID[r][c] && GRID[r][c] <= 'z') {
+        allKeys.add(GRID[r][c]);
       }
     }
   }
 
-  return foundKeys;
+  const NUM_ALL_KEYS = allKeys.size;
+  const SEEN = new Set();
+
+  while (queue.length) {
+    const [r, c, keys, d] = queue.shift();
+    const key = getKey(r, c, keys);
+
+    if (SEEN.has(key)) {
+      continue;
+    }
+
+    SEEN.add(key);
+
+    // invalid, or wall
+    if (r < 0 || r >= GRID.length || c < 0 || c >= GRID[0].length || GRID[r][c] === '#') {
+      continue;
+    }
+    // door that we haven't unlocked
+    if ('A' <= GRID[r][c] && GRID[r][c] <= 'Z' && !keys.has(GRID[r][c].toLowerCase())) {
+      continue;
+    }
+
+    const newKeys = new Set(keys);
+
+    // key
+    if ('a' <= GRID[r][c] && GRID[r][c] <= 'z') {
+      newKeys.add(GRID[r][c]);
+
+      if (newKeys.size === NUM_ALL_KEYS) {
+        return d;
+      }
+    }
+
+    for (let i = 0; i < 4; i++) {
+      queue.push([r + DR[i], c + DC[i], newKeys, d + 1]);
+    }
+  }
 };
 
-const unlockDoor = (door) => {
-  const ks = Object.keys(distances);
-  for (let i = 0; i < ks.length; i++) {
-    const k = ks[i];
-    console.log(distances[k]);
-    distances[k][3] = distances[k][3].filter(d => d != door);
-  }
-}
-
-const shortestPathToGetKeys = (startPos, map) => {
-  let steps = 0;
-  const doorsOpened = {};
-  const targetKeys = Object.keys(keys);
-  let keysCollected = []
-
-  let pos = [...startPos];
-  let i = 0;
-  while (i < 1) { // keysCollected.length !== targetKeys.length) {
-    // what keys can I reach right now
-    const keysWithinReach = distances[key(pos)];
-    const keysWithOpenDoors = Object.keys(keysWithinReach).filter(key => keysWithinReach[key][3].length === 0);
-    
-    const movesToMake = keysWithOpenDoors
-      .map(key => keysWithinReach[key])
-      .sort((a, b) => a[2] - b[2]);
-    const move = movesToMake[0];
-
-    pos = [move[0], move[1]]
-    steps += move[2];
-
-    const thisKey = map[pos[0]][pos[1]];
-    keysCollected.push(thisKey);
-    doorsOpened[thisKey.toUpperCase()] = true;
-
-    // unlock the doors
-    unlockDoor(thisKey.toUpperCase());
-    i++;
-  }
-  
-  return steps;
-};
