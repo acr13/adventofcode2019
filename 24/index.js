@@ -135,7 +135,7 @@ const getPartTwo = (grid) => {
         // pluck center square
         // add level
         const cells = adjCells(i, j)
-          // .filter(c => c[0] !== 2 && c[1] !== 2)
+          .filter(c => c[0] !== 2 || c[1] !== 2)
           .map(c => [...c, l]);
         
         if (!E[k]) { E[k] = []; }
